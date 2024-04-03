@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.getdropdowndata.dropdown.model.PrepareRetunData;
+import com.getdropdowndata.dropdown.model.PrepareTableData;
 import com.getdropdowndata.dropdown.repository.DataSourceForMySql;
 
 import java.nio.ByteBuffer;
@@ -29,12 +30,14 @@ public class DropDownService {
     }
 
     public ResponseEntity<?> getDropDownData(String organizationIdStr, String entityIdStr) {
-        // Convert the string UUIDs to byte arrays
         byte[] organizationIdBytes = uuidToBytes(UUID.fromString(organizationIdStr));
         byte[] entityIdBytes = uuidToBytes(UUID.fromString(entityIdStr));
 
-        String tableName = "phone_number";
-        String query = "SELECT phone_number FROM " + tableName + " WHERE organization_id = ? AND entity_id = ?";
+        PrepareTableData prepareTableData = new PrepareTableData();
+        String tableName = prepareTableData.getTableName();
+        String ColumnLabel = prepareTableData.getColumnLabel();
+        
+        String query = "SELECT " +ColumnLabel+ " FROM " + tableName + " WHERE organization_id = ? AND entity_id = ?";
 
         try (Connection connection = DriverManager.getConnection(dataSource.getUrl(), dataSource.getUsername(), dataSource.getPassword());
              PreparedStatement statement = connection.prepareStatement(query)) {
@@ -42,7 +45,7 @@ public class DropDownService {
             statement.setBytes(1, organizationIdBytes);
             statement.setBytes(2, entityIdBytes);
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<PrepareRetunData> data = getResultSet(resultSet);
+                List<PrepareRetunData> data = getResultSet(resultSet,ColumnLabel);
                 return ResponseEntity.ok(data);
             }
         } catch (SQLException e) {
@@ -51,10 +54,10 @@ public class DropDownService {
         }
     }
 
-    public List<PrepareRetunData> getResultSet(ResultSet resultSet) throws SQLException {
+    public List<PrepareRetunData> getResultSet(ResultSet resultSet,String ColumnLabel) throws SQLException {
         List<PrepareRetunData> data = new ArrayList<>();
         while (resultSet.next()) {
-            String phoneNumber = resultSet.getString("phone_number");
+            String phoneNumber = resultSet.getString(ColumnLabel);
             PrepareRetunData dropDownData = new PrepareRetunData();
             dropDownData.Insertdata(phoneNumber);
             data.add(dropDownData);
